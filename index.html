@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Add a default marker to a web map</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/h3-js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1Ijoic2VyZ2JlciIsImEiOiJja3dwOWgzeGQwYWdyMm9xb2pkMDFvYmNuIn0.H9AJ_NLmDNYMed6dvu_Q0A';
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [12.550343, 55.665957],
+            zoom: 8
+        });
+
+        map.on("load", () => {
+
+            // d3.csv("data.csv")
+            //     .then(data => {
+            //         console.log('data', data);
+
+            //         const pins = data.map(pin => {
+            //             const coords = h3.h3ToGeo(pin.h3);
+            //             return {
+            //                 "type": "Feature",
+            //                 "properties": {},
+            //                 "geometry": {
+            //                     "type": "Point",
+            //                     "coordinates": coords.reverse()
+            //                 }
+            //             }
+            //         })
+
+            //         const features = {
+            //             "type": "FeatureCollection",
+            //             "features": pins
+            //         }
+            //         console.log('features', features);
+            //         map.getSource("circles").setData(features)
+            //     })
+
+            fetch("data.geojson").then(i => i.json()).then(geo => map.getSource("circles").setData(geo))
+
+            map.addSource('circles', {
+                'type': 'geojson',
+                'data': {
+                    'type': 'FeatureCollection',
+                    'features': []
+                }
+            });
+            map.addLayer({
+                'id': 'population',
+                'type': 'circle',
+                'source': 'circles',
+                'paint': {
+                    'circle-radius': 5,
+                    'circle-color': 'red'
+                }
+            });
+
+        })
+
+    </script>
+
+</body>
+
+</html>
