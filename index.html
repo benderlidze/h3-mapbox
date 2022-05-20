@@ -39,31 +39,34 @@
 
         map.on("load", () => {
 
-            // d3.csv("data.csv")
-            //     .then(data => {
-            //         console.log('data', data);
+            d3.csv("Hex Ids.csv")
+                .then(data => {
+                    console.log('data', data);
+                    const temp = [];
 
-            //         const pins = data.map(pin => {
-            //             const coords = h3.h3ToGeo(pin.h3);
-            //             return {
-            //                 "type": "Feature",
-            //                 "properties": {},
-            //                 "geometry": {
-            //                     "type": "Point",
-            //                     "coordinates": coords.reverse()
-            //                 }
-            //             }
-            //         })
+                    const pins = data.map(pin => {
+                        const coords = h3.h3ToGeo(pin.h3);
+                        temp.push([pin.h3, ...coords])
+                        return {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": coords.reverse()
+                            }
+                        }
 
-            //         const features = {
-            //             "type": "FeatureCollection",
-            //             "features": pins
-            //         }
-            //         console.log('features', features);
-            //         map.getSource("circles").setData(features)
-            //     })
+                    })
+                    const features = {
+                        "type": "FeatureCollection",
+                        "features": pins
+                    }
+                    console.log('features', features);
+                    console.log('temp', temp);
+                    map.getSource("circles").setData(features)
+                })
 
-            fetch("data.geojson").then(i => i.json()).then(geo => map.getSource("circles").setData(geo))
+            //fetch("data.geojson").then(i => i.json()).then(geo => map.getSource("circles").setData(geo))
 
             map.addSource('circles', {
                 'type': 'geojson',
@@ -84,6 +87,47 @@
 
         })
 
+
+        function exportToCsv(filename, rows) {
+            var processRow = function (row) {
+                var finalVal = '';
+                for (var j = 0; j < row.length; j++) {
+                    var innerValue = row[j] === null ? '' : row[j].toString();
+                    if (row[j] instanceof Date) {
+                        innerValue = row[j].toLocaleString();
+                    };
+                    var result = innerValue.replace(/"/g, '""');
+                    if (result.search(/("|,|\n)/g) >= 0)
+                        result = '"' + result + '"';
+                    if (j > 0)
+                        finalVal += ',';
+                    finalVal += result;
+                }
+                return finalVal + '\n';
+            };
+
+            var csvFile = '';
+            for (var i = 0; i < rows.length; i++) {
+                csvFile += processRow(rows[i]);
+            }
+
+            var blob = new Blob([csvFile], { type: 'text/csv;charset=utf-8;' });
+            if (navigator.msSaveBlob) { // IE 10+
+                navigator.msSaveBlob(blob, filename);
+            } else {
+                var link = document.createElement("a");
+                if (link.download !== undefined) { // feature detection
+                    // Browsers that support HTML5 download attribute
+                    var url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", filename);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+        }
     </script>
 
 </body>

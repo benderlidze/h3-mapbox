@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Add a default marker to a web map</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/h3-js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="geo"></div>
+
+    <script>
+
+        const mapboxKey = [
+            'pk.eyJ1IjoiZmFyYWRheTIiLCJhIjoiTUVHbDl5OCJ9.buFaqIdaIM3iXr1BOYKpsQ',
+            'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4M29iazA2Z2gycXA4N2pmbDZmangifQ.-g_vE53SD2WrJ6tFX7QHmA',
+            'pk.eyJ1IjoiZHVlcm1hZWwiLCJhIjoiNTRmNjc2MjYzN2Y0NDk5ZjRjMTM1MDA2YjQzYTY4NjUifQ.zdJRPPXa8WvpcMZC1_RAyw',
+            'pk.eyJ1IjoiZmFyYWRheTIiLCJhIjoiTUVHbDl5OCJ9.buFaqIdaIM3iXr1BOYKpsQ',
+            'pk.eyJ1IjoibW9sbHltZXJwIiwiYSI6ImNpazdqbGtiZTAxbGNocm0ybXJ3MnNzOHAifQ.5_kJrEENbBWtqTZEv7g1-w',
+        ]
+        const geocoded = [];
+        const allData = [];
+
+        d3.csv("Hex Ids.csv")
+            .then(data => {
+                console.log('data', data);
+
+                const pins = data.map(pin => {
+                    const coords = h3.h3ToGeo(pin.h3);
+                    return [pin.h3, ...coords]
+                })
+
+                console.log('pins', pins);
+
+                (async () => {
+                    const array = [...pins]
+                    let keyCounter = 0;
+                    let keyIndex = 0;
+                    for (let index = 0; index < array.length; index++) {
+                        console.log('', array[index]);
+                        const pin = array[index];
+
+                        if (keyCounter >= 200) {//switch api key every 200 rows
+                            keyCounter = 0;
+                            keyIndex++
+                            if (keyIndex >= mapboxKey.length) {
+                                keyIndex = 0
+                            }
+                        }
+                        keyCounter++
+
+                        const KEY = mapboxKey[keyIndex]
+                        console.log('KEY', KEY, keyIndex);
+
+                        const addr = await geocode(pin[2], pin[1], KEY)
+
+                        console.log('addr', addr);
+
+                        if (addr && addr.features[0]) {
+                            geocoded.push([
+                                ...pin,
+                                addr.features[0].place_name
+                            ])
+
+                            allData.push([
+                                ...pin,
+                                addr
+                            ])
+                        }
+                    }
+                    console.log('geocoded', geocoded);
+                    exportToCsv("geocoded", geocoded)
+                })();
+
+            })
+
+
+        async function geocode(lng, lat, mapboxKey) {
+
+            return fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxKey}`)
+                .then(resp => resp.json())
+                .then(json => {
+                    return json
+                })
+
+        }
+
+        function exportToCsv(filename, rows) {
+            var processRow = function (row) {
+                var finalVal = '';
+                for (var j = 0; j < row.length; j++) {
+                    var innerValue = row[j] === null ? '' : row[j].toString();
+                    if (row[j] instanceof Date) {
+                        innerValue = row[j].toLocaleString();
+                    };
+                    var result = innerValue.replace(/"/g, '""');
+                    if (result.search(/("|,|\n)/g) >= 0)
+                        result = '"' + result + '"';
+                    if (j > 0)
+                        finalVal += ',';
+                    finalVal += result;
+                }
+                return finalVal + '\n';
+            };
+
+            var csvFile = '';
+            for (var i = 0; i < rows.length; i++) {
+                csvFile += processRow(rows[i]);
+            }
+
+            var blob = new Blob([csvFile], { type: 'text/csv;charset=utf-8;' });
+            if (navigator.msSaveBlob) { // IE 10+
+                navigator.msSaveBlob(blob, filename);
+            } else {
+                var link = document.createElement("a");
+                if (link.download !== undefined) { // feature detection
+                    // Browsers that support HTML5 download attribute
+                    var url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", filename);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+        }
+    </script>
+
+</body>
+
+</html>
