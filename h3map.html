@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Add a default marker to a web map</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.8.2/mapbox-gl.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/h3-js"></script>
+    <script src="https://unpkg.com/deck.gl@^8.0.0/dist.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 1200px;
+            height: 500px;
+
+            padding: 10px;
+            border-radius: 500px;
+            -moz-border-radius: 500px;
+            -webkit-mask-border-radius: 500px;
+            -webkit-border-radius: 500px;
+            -webkit-transform: translate3d(0px, 0px, 0px);
+
+            /* For browsers that do not support gradients */
+
+            ;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiaHVuZ3VuY2hhaW5lZCIsImEiOiJjbDFieGZyMDgwMjR3M2twMmJ1bTdlZW5wIn0.dQYKVbIDvcw65XPddVznCg';
+        const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/hungunchained/cl32j3vr8002v14ql6gw2e2x7',
+            center: [15.0833328, 18.4912238],
+            zoom: 1,
+            maxZoom: 18,
+        });
+
+        map.on("load", () => {
+
+            d3.csv("Hex Ids.csv")
+                .then(data => {
+                    console.log('data', data);
+
+                    const polygons = data.map(hex => {
+                        const polygon = {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "Polygon",
+                                "coordinates": [
+                                    h3.h3ToGeoBoundary(hex.h3, true)
+                                ]
+                            }
+                        }
+                        return polygon;
+                    })
+
+                    const collection = {
+                        "type": "FeatureCollection",
+                        "features":
+                            polygons
+                    }
+                    map.getSource("hex").setData(collection)
+                })
+
+            map.addSource('bbox', {
+                'type': 'geojson',
+                'data': {
+                    'type': 'FeatureCollection',
+                    'features': []
+                }
+            });
+
+            map.addLayer({
+                'id': 'bbox-fills',
+                'type': 'fill',
+                'source': 'bbox',
+                'layout': {},
+                'paint': {
+                    'fill-color': '#627BC1',
+                    'fill-opacity': 0.3
+                }
+            });
+
+
+            map.addSource('hex', {
+                'type': 'geojson',
+                'data': {
+                    'type': 'FeatureCollection',
+                    'features': []
+                }
+            });
+
+            map.addLayer({
+                'id': 'hex-fills',
+                'type': 'fill',
+                'source': 'hex',
+                'layout': {},
+                'paint': {
+                    'fill-color': '#627BC1',
+                    'fill-opacity': 0.6
+                }
+            });
+
+            map.addLayer({
+                'id': 'hex-borders',
+                'type': 'line',
+                'source': 'hex',
+                'layout': {},
+                'paint': {
+                    'line-color': 'white',
+                    'line-width': 2
+                }
+            });
+
+
+            map.on("moveend", () => {
+
+                if (map.getZoom() < 10) return;
+
+                var line = turf.lineString(map.getBounds().toArray());
+                var bboxLine = turf.bbox(line);
+                var bboxPolygon = turf.bboxPolygon(bboxLine);
+                const bbox = bboxPolygon.geometry.coordinates.splice(0, 3)
+
+                var hexagons = h3.polyfill(bbox, 9, true);
+                var geojson = {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'MultiPolygon',
+                        coordinates: hexagons.map(function toBoundary(hex) {
+                            return [h3.h3ToGeoBoundary(hex, true)];
+                        })
+                    }
+                };
+                map.getSource("bbox").setData(geojson)
+            })
+
+        })
+
+    </script>
+
+</body>
+
+</html>
