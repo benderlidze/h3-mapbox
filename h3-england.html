@@ -74,38 +74,6 @@
                 }
             });
 
-
-            // map.addSource('hex', {
-            //     'type': 'geojson',
-            //     'data': {
-            //         'type': 'FeatureCollection',
-            //         'features': []
-            //     }
-            // });
-
-            // map.addLayer({
-            //     'id': 'hex-fills',
-            //     'type': 'fill',
-            //     'source': 'hex',
-            //     'layout': {},
-            //     'paint': {
-            //         'fill-color': '#627BC1',
-            //         'fill-opacity': 0.6
-            //     }
-            // });
-
-            // map.addLayer({
-            //     'id': 'hex-borders',
-            //     'type': 'line',
-            //     'source': 'hex',
-            //     'layout': {},
-            //     'paint': {
-            //         'line-color': 'white',
-            //         'line-width': 2
-            //     }
-            // });
-
-
             map.on("click", "bbox-fills", (e) => {
                 console.log(e.features[0].properties.hex);
             })
