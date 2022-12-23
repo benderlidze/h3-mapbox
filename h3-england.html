@@ -107,7 +107,7 @@
 
 
             map.on("click", "bbox-fills", (e) => {
-                console.log('e', e.features[0].properties.hex);
+                console.log(e.features[0].properties.hex);
             })
 
             const polygons = []
@@ -131,7 +131,7 @@
                     const c = polygons.map(function toBoundary(hex) {
                         const geom = h3.cellToBoundary(hex, true)
 
-                        const city = d.find(item => item.hexArray.split(",").includes(hex));
+                        const city = d.find(item => item.hexArray.split(",").map(e => e.trim()).includes(hex));
                         console.log('city', city);
                         const color = city ? city.colour : "gray"
                         return turf.polygon([geom], { hex, color });
